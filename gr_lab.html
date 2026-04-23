@@ -1,0 +1,2159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>구텐베르크–리히터 법칙 실습실 · Seismicity Lab</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;700&family=Noto+Serif+KR:wght@400;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<!-- KaTeX for math -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+
+<!-- Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  :root{
+    --bg:        #f1ead9;
+    --bg-deep:   #e6dec8;
+    --paper:     #fbf7ed;
+    --paper-2:   #f7f1e1;
+    --ink:       #1a1f2e;
+    --ink-soft:  #4a5160;
+    --ink-mute:  #7a7568;
+    --rule:      #cdc4ad;
+    --rule-soft: #e0d8c1;
+    --accent:    #b8401f;       /* terracotta - warnings, aftershocks */
+    --accent-2:  #2d5f7c;       /* deep cyan-blue - mainshocks, primary data */
+    --amber:     #c08a1f;       /* highlight, b-value */
+    --moss:      #4a6741;       /* secondary callouts */
+    --shadow:    0 1px 0 rgba(26,31,46,.04), 0 6px 18px -8px rgba(26,31,46,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background: var(--bg);
+    background-image:
+      radial-gradient(rgba(26,31,46,.035) 1px, transparent 1px),
+      radial-gradient(rgba(26,31,46,.025) 1px, transparent 1px);
+    background-size: 18px 18px, 7px 7px;
+    background-position: 0 0, 9px 9px;
+    color:var(--ink);
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+    font-feature-settings: 'ss03', 'tnum';
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:0 28px}
+
+  /* ======== Masthead ======== */
+  header.mast{
+    border-top: 6px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 28px 0 22px;
+    margin-bottom: 32px;
+    background: linear-gradient(180deg, transparent, rgba(26,31,46,.025));
+  }
+  .mast .row{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+  .mast .meta{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-soft);
+    border-bottom:1px solid var(--rule);
+    padding-bottom:6px; margin-bottom:14px;
+    display:flex; gap:18px; flex-wrap:wrap;
+  }
+  .mast .meta span{white-space:nowrap}
+  .mast .meta .lab-date-input{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .08em;
+    color: var(--ink-soft);
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--rule);
+    padding: 0 2px;
+    margin-left: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .mast .meta .lab-date-input:focus{
+    outline: none;
+    border-bottom-color: var(--accent);
+    color: var(--ink);
+  }
+  .mast .meta .lab-date-input::-webkit-calendar-picker-indicator{
+    opacity: 0.4; cursor: pointer;
+    filter: invert(0.2);
+  }
+  .mast h1{
+    font-family:'Fraunces', 'Noto Serif KR', serif;
+    font-weight:900;
+    font-size: clamp(36px, 5.5vw, 68px);
+    line-height: .95;
+    letter-spacing: -.02em;
+    margin: 0 0 6px;
+    font-variation-settings: 'opsz' 144;
+  }
+  .mast h1 .em{font-style:italic; color:var(--accent); font-weight:700}
+  .mast .sub{
+    font-family:'Noto Serif KR', serif;
+    font-size: 17px; color:var(--ink-soft); max-width:62ch;
+    margin:8px 0 0;
+  }
+  .mast .stamp{
+    display:inline-block;
+    border:1.5px solid var(--ink);
+    padding: 6px 12px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    transform: rotate(-2deg);
+    background: var(--paper);
+  }
+
+  /* ======== Glossary ======== */
+  details.glossary-wrap{
+    margin: 0 0 28px;
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--moss);
+    background: var(--paper);
+    border-radius: 2px;
+  }
+  details.glossary-wrap > summary{
+    cursor: pointer; padding: 14px 20px;
+    list-style: none;
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  details.glossary-wrap > summary::-webkit-details-marker{display:none}
+  details.glossary-wrap > summary::before{
+    content: "▸"; color: var(--moss); margin-right: 8px;
+    transition: transform .2s; display: inline-block;
+  }
+  details.glossary-wrap[open] > summary::before{transform: rotate(90deg)}
+  .gl-label{
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 700; font-size: 18px; color: var(--ink);
+  }
+  .gl-hint{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--ink-mute); letter-spacing: .03em;
+  }
+  .gl-body{ padding: 4px 22px 22px }
+  .gl-grid{
+    display: grid; gap: 18px 32px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  .gl-group h4{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); margin: 6px 0 8px;
+    padding-bottom: 5px; border-bottom: 1px solid var(--rule);
+  }
+  .gl-group dl{ margin: 0 }
+  .gl-group dt{
+    font-size: 13.5px; margin-top: 10px; line-height: 1.5;
+  }
+  .gl-group dt b{
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700; color: var(--ink);
+  }
+  .gl-group dt .ab{
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    color: var(--ink-mute); margin-left: 4px;
+  }
+  .gl-group dd{
+    margin: 2px 0 0; padding-left: 12px;
+    border-left: 2px solid var(--rule-soft);
+    font-size: 13px; color: var(--ink-soft); line-height: 1.55;
+  }
+
+  .layout{display:grid; grid-template-columns: 220px 1fr; gap:36px; align-items:start}
+  @media (max-width: 960px){ .layout{grid-template-columns:1fr} nav.steps{position:static !important; max-height:none !important} }
+
+  nav.steps{
+    position:sticky; top:18px;
+    border-left:1px solid var(--rule);
+    padding: 4px 0 4px 16px;
+    font-size: 13.5px;
+  }
+  nav.steps .label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-mute); margin-bottom:10px;
+  }
+  nav.steps a{
+    display:flex; gap:10px; align-items:baseline;
+    padding:7px 0; color:var(--ink-soft); text-decoration:none;
+    border-bottom:1px dashed transparent;
+    transition: color .15s;
+  }
+  nav.steps a:hover{color:var(--accent)}
+  nav.steps a .num{
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:11px;
+    color:var(--accent); min-width:22px;
+  }
+  nav.steps a.done .num::after{content:" ✓"; color:var(--moss)}
+  nav.steps .legend{margin-top:18px; font-size:11px; color:var(--ink-mute); line-height:1.5}
+  nav.steps .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+  /* ======== Cards / Sections ======== */
+  section.step{
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 28px 32px 30px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+    position:relative;
+  }
+  section.step::before{
+    content: attr(data-num);
+    position:absolute; top:-22px; left:24px;
+    font-family:'Fraunces', serif; font-style:italic;
+    font-size:64px; font-weight:900; color:var(--accent);
+    background:var(--bg); padding: 0 12px;
+    line-height:1;
+  }
+  section.step h2{
+    font-family:'Noto Serif KR', 'Fraunces', serif;
+    font-weight:900;
+    font-size: 26px; margin: 6px 0 4px;
+    letter-spacing:-.01em;
+  }
+  section.step .lede{
+    font-family:'Noto Serif KR', serif;
+    font-size:15px; color:var(--ink-soft);
+    border-left:3px solid var(--amber);
+    padding-left:14px; margin: 14px 0 22px; max-width:72ch;
+  }
+
+  /* ======== Theory toggle ======== */
+  details.theory{
+    border:1px solid var(--rule);
+    border-left: 3px solid var(--moss);
+    background: var(--paper-2);
+    padding: 0;
+    margin: 0 0 22px;
+    border-radius:1px;
+  }
+  details.theory > summary{
+    cursor:pointer; padding: 12px 16px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--moss); list-style:none;
+    display:flex; align-items:center; gap:10px;
+  }
+  details.theory > summary::-webkit-details-marker{display:none}
+  details.theory > summary::before{
+    content:"▸"; transition:transform .2s; display:inline-block;
+  }
+  details.theory[open] > summary::before{transform:rotate(90deg)}
+  details.theory .body{padding: 4px 18px 18px; font-size:14.5px; color:var(--ink-soft)}
+  details.theory .body p{margin:8px 0}
+  details.theory .body code{
+    font-family:'JetBrains Mono',monospace; font-size:13px;
+    background: rgba(26,31,46,.05); padding:1px 5px; border-radius:2px;
+  }
+
+  /* ======== Form controls ======== */
+  .controls{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap:18px 22px; margin: 14px 0 18px;
+  }
+  .ctrl{display:flex; flex-direction:column; gap:6px}
+  .ctrl label{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--ink-mute);
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .ctrl label .val{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--accent-2); font-weight:700; font-size:13px;
+    letter-spacing:0;
+  }
+  .ctrl input[type="number"], .ctrl input[type="date"], .ctrl select, .ctrl input[type="text"]{
+    font-family:'JetBrains Mono',monospace; font-size:13.5px;
+    padding: 8px 10px; border: 1px solid var(--rule);
+    background: var(--paper-2); color: var(--ink);
+    border-radius: 2px; outline:none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .ctrl input:focus, .ctrl select:focus{
+    border-color: var(--accent-2);
+    box-shadow: 0 0 0 3px rgba(45,95,124,.12);
+  }
+  .ctrl input[type="range"]{
+    -webkit-appearance:none; appearance:none;
+    width:100%; height: 4px; background: var(--rule);
+    border-radius: 2px; outline:none;
+  }
+  .ctrl input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:18px; height:18px; border-radius:50%;
+    background:var(--accent); border:2px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--accent);
+    cursor: grab;
+  }
+  .ctrl input[type="range"]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%;
+    background:var(--accent); border:2px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--accent);
+    cursor: grab;
+  }
+  .switch{
+    display:inline-flex; align-items:center; gap:10px;
+    cursor:pointer; user-select:none;
+  }
+  .switch input{display:none}
+  .switch .track{
+    width:36px; height:20px; background:var(--rule); border-radius:20px;
+    position:relative; transition: background .2s;
+  }
+  .switch .track::after{
+    content:""; position:absolute; top:2px; left:2px;
+    width:16px; height:16px; border-radius:50%; background:var(--paper);
+    transition: transform .2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
+  .switch input:checked + .track{background:var(--moss)}
+  .switch input:checked + .track::after{transform: translateX(16px)}
+
+  /* ======== Buttons ======== */
+  .btnrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  button.btn{
+    font-family:'Pretendard Variable', sans-serif;
+    font-size:14px; font-weight:600;
+    padding: 10px 18px; border-radius: 2px;
+    border: 1.5px solid var(--ink);
+    background: var(--ink); color: var(--paper);
+    cursor:pointer; letter-spacing:.01em;
+    transition: transform .08s, box-shadow .15s;
+  }
+  button.btn:hover{transform:translateY(-1px); box-shadow: 0 4px 0 -2px var(--accent)}
+  button.btn:active{transform:translateY(0)}
+  button.btn.ghost{background:transparent; color:var(--ink)}
+  button.btn.accent{background:var(--accent); border-color:var(--accent)}
+  button.btn.small{padding:6px 12px; font-size:12.5px}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ======== Status / messages ======== */
+  .status{
+    font-family:'JetBrains Mono',monospace; font-size:12px;
+    color:var(--ink-soft); padding:8px 12px;
+    background: var(--bg-deep); border-left:3px solid var(--ink-mute);
+    margin: 12px 0; border-radius:1px; min-height: 36px;
+  }
+  .status.ok{border-left-color:var(--moss)}
+  .status.err{border-left-color:var(--accent); color:var(--accent)}
+  .status.warn{border-left-color:var(--amber)}
+
+  /* ======== Stats / KPIs ======== */
+  .kpi-grid{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap:1px; background:var(--rule); border:1px solid var(--rule);
+    margin: 16px 0;
+  }
+  .kpi{
+    background: var(--paper-2); padding: 12px 14px;
+  }
+  .kpi .lbl{
+    font-family:'JetBrains Mono',monospace; font-size:10px;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--ink-mute);
+    margin-bottom:4px;
+  }
+  .kpi .num{
+    font-family:'Fraunces', serif; font-weight:700;
+    font-size: 26px; color:var(--ink); line-height:1.05;
+    font-variation-settings: 'opsz' 144;
+  }
+  .kpi .num.accent{color:var(--accent)}
+  .kpi .num.amber{color:var(--amber)}
+  .kpi .num.blue{color:var(--accent-2)}
+  .kpi .unit{
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    color:var(--ink-mute); margin-left:4px; font-weight:400;
+  }
+  .kpi .sub{font-size:11px; color:var(--ink-mute); margin-top:2px}
+
+  /* ======== Plot containers ======== */
+  .plot{
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    margin: 14px 0; min-height: 320px;
+    padding: 6px;
+  }
+  .plot-row{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
+  @media (max-width: 800px){ .plot-row{grid-template-columns:1fr} }
+
+  #map{height: 380px; border: 1px solid var(--rule); margin: 10px 0; background: var(--bg-deep)}
+
+  /* ======== Interpretation note ======== */
+  .interp{
+    background: linear-gradient(180deg, rgba(192,138,31,.08), transparent);
+    border: 1px solid var(--amber);
+    border-left-width: 4px;
+    padding: 14px 16px; margin: 14px 0;
+    font-family:'Noto Serif KR', serif;
+    font-size: 14.5px;
+  }
+  .interp .h{
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--amber);
+    font-weight:700; margin-bottom:6px;
+  }
+
+  /* ======== Footer ======== */
+  footer{
+    margin-top: 60px; padding: 24px 0 40px;
+    border-top: 1px solid var(--ink);
+    font-size:12px; color:var(--ink-mute); font-family:'JetBrains Mono',monospace;
+    line-height:1.7;
+  }
+  footer a{color:var(--accent-2)}
+
+  /* ======== Loading spinner ======== */
+  .spin{
+    display:inline-block; width:12px; height:12px;
+    border:2px solid var(--rule); border-top-color: var(--accent);
+    border-radius:50%; animation: spin 1s linear infinite;
+    vertical-align:middle; margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ======== Misc ======== */
+  .hr-fancy{
+    border:none; height:1px; background:var(--rule);
+    margin: 22px 0; position:relative;
+  }
+  .hr-fancy::after{
+    content:"❖"; position:absolute; top:-10px; left:50%;
+    transform:translateX(-50%); background:var(--paper);
+    padding: 0 10px; color:var(--ink-mute); font-size:13px;
+  }
+  .hide{display:none !important}
+
+  /* preset tag chips */
+  .chip-row{display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 14px}
+  .chip{
+    font-family:'Pretendard Variable', sans-serif; font-size:13px;
+    padding: 8px 14px; border:1.5px solid var(--rule);
+    background: var(--paper-2); cursor:pointer; border-radius:2px;
+    transition: all .15s;
+  }
+  .chip:hover{border-color:var(--accent); color:var(--accent)}
+  .chip.active{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+
+  /* MathJax-style inline boxes */
+  .formula{
+    background: var(--paper-2); border:1px dashed var(--rule);
+    padding: 10px 14px; margin: 10px 0;
+    font-size: 14.5px;
+  }
+
+  /* CSV upload block */
+  .csv-block{
+    background: var(--paper-2);
+    border: 1px dashed var(--rule);
+    border-left: 3px solid var(--accent-2);
+    padding: 14px 16px;
+    margin: -6px 0 16px;
+    border-radius: 1px;
+  }
+  .csv-block input[type="file"]{
+    font-family:'JetBrains Mono', monospace; font-size:12.5px;
+    padding: 6px 0; color: var(--ink);
+    width: 100%;
+  }
+  .csv-block input[type="file"]::file-selector-button{
+    font-family:'Pretendard Variable', sans-serif;
+    font-size:12px; font-weight:600;
+    padding: 6px 12px; margin-right: 10px;
+    background: var(--ink); color: var(--paper);
+    border: 1.5px solid var(--ink); border-radius: 2px;
+    cursor: pointer;
+  }
+  .csv-block input[type="file"]::file-selector-button:hover{
+    background: var(--accent); border-color: var(--accent);
+  }
+
+  /* Step-by-step list for ISC instructions */
+  ol.steps-list{
+    counter-reset: st;
+    list-style: none; padding: 0; margin: 8px 0;
+  }
+  ol.steps-list li{
+    counter-increment: st;
+    position: relative; padding: 4px 0 6px 34px; margin: 6px 0;
+    font-size: 14px;
+  }
+  ol.steps-list li::before{
+    content: counter(st);
+    position: absolute; left: 0; top: 2px;
+    width: 24px; height: 24px; line-height: 24px;
+    text-align: center;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent); background: var(--paper);
+    border: 1.5px solid var(--accent); border-radius: 50%;
+  }
+  ol.steps-list code{
+    font-family:'JetBrains Mono', monospace; font-size: 12.5px;
+    background: var(--bg-deep); padding: 1px 6px;
+    border-radius: 2px;
+  }
+
+  /* leaflet legend */
+  .leg-pill{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    color:var(--ink-soft); margin-right:14px;
+  }
+  .leg-pill .sw{
+    width:12px; height:12px; border-radius:50%;
+    border:1px solid rgba(0,0,0,.2);
+  }
+
+  /* small badge */
+  .badge{
+    display:inline-block; padding:2px 7px; border-radius:2px;
+    font-family:'JetBrains Mono',monospace; font-size:10px;
+    letter-spacing:.08em; text-transform:uppercase;
+    background: var(--bg-deep); color:var(--ink-soft);
+    border:1px solid var(--rule);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ============ MASTHEAD ============ -->
+  <header class="mast">
+    <div class="meta">
+      <span>Vol. 01 · No. 1</span>
+      <span>지진학 실습 시리즈</span>
+      <span>실습일: <input type="date" id="labDate" class="lab-date-input" /></span>
+    </div>
+    <div class="row">
+      <div>
+        <h1>Gutenberg–Richter <span class="em">실습실</span></h1>
+        <p class="sub">
+          지진 빅데이터를 활용한 Gutenberg–Richter 관계 분석
+        </p>
+      </div>
+      <div class="stamp">Interactive · Browser-only</div>
+    </div>
+  </header>
+
+  <!-- ============ GLOSSARY ============ -->
+  <details id="glossary" class="glossary-wrap">
+    <summary>
+      <span class="gl-label">용어·약어 사전</span>
+      <span class="gl-hint">클릭하여 열기 — 처음 보는 용어가 있으면 여기서 확인하세요</span>
+    </summary>
+    <div class="gl-body">
+      <div class="gl-grid">
+
+        <div class="gl-group">
+          <h4>핵심 변수</h4>
+          <dl>
+            <dt><b>M</b> <span class="ab">Magnitude</span></dt>
+            <dd>규모. 지진이 방출한 에너지의 로그 척도. M이 1 커지면 에너지는 약 32배.</dd>
+            <dt><b>M<sub>w</sub></b> <span class="ab">Moment magnitude</span></dt>
+            <dd>모멘트 규모. 단층 면적·변위에서 구한 물리적 정의값. 큰 지진의 표준.</dd>
+            <dt><b>M<sub>L</sub></b> <span class="ab">Local magnitude</span></dt>
+            <dd>국지 규모(리히터 규모). 작은~중간 지진에 적합.</dd>
+            <dt><b>M<sub>c</sub></b> <span class="ab">Magnitude of Completeness</span></dt>
+            <dd>규모 완전성. 이 값 이상에서는 카탈로그가 모든 지진을 <em>빠짐없이</em> 기록.</dd>
+            <dt><b>M<sub>max</sub></b></dt>
+            <dd>분석 상한 규모. 극단치 하나가 통계를 지배할 때 절단(truncation)하는 데 사용.</dd>
+            <dt><b>ΔM</b></dt>
+            <dd>빈 너비(bin width). FMD 계산 시 규모 구간의 폭. 보통 0.1.</dd>
+            <dt><b>b-value</b></dt>
+            <dd>GR 법칙 기울기. 작은 지진 대비 큰 지진의 상대 빈도. 보통 ≈ 1.0.</dd>
+            <dt><b>a-value</b></dt>
+            <dd>GR 법칙 절편. 해당 지역·기간의 전체적인 지진 활동도.</dd>
+          </dl>
+        </div>
+
+        <div class="gl-group">
+          <h4>분석 개념</h4>
+          <dl>
+            <dt><b>GR 법칙</b> <span class="ab">Gutenberg–Richter law</span></dt>
+            <dd>$\log_{10} N(\geq M) = a - bM$. 규모별 지진 발생 빈도의 경험식.</dd>
+            <dt><b>FMD</b> <span class="ab">Frequency–Magnitude Distribution</span></dt>
+            <dd>빈도-규모 분포. 규모를 x축, 발생 수를 y축(로그)으로 그린 그래프.</dd>
+            <dt><b>MLE</b> <span class="ab">Maximum Likelihood Estimation</span></dt>
+            <dd>최대우도법. b-값 추정의 표준 통계 방법(Aki 1965).</dd>
+            <dt><b>LSQ</b> <span class="ab">Least Squares</span></dt>
+            <dd>최소제곱법. 직선 회귀로 b를 추정. 직관적이지만 누적 FMD에서는 편향됨.</dd>
+            <dt><b>MAXC</b> <span class="ab">Maximum Curvature</span></dt>
+            <dd>Mc 추정법 중 하나. 비누적 FMD에서 이벤트가 가장 많은 규모 구간을 Mc로 봄.</dd>
+            <dt><b>Declustering</b></dt>
+            <dd>여진 제거. 본진에서 유발된 종속 지진을 통계에서 제외하는 절차.</dd>
+            <dt><b>Omori 법칙</b></dt>
+            <dd>여진이 시간에 따라 $n(t) \propto 1/(t+c)^p$ 형태로 감쇠한다는 경험식.</dd>
+            <dt><b>Sliding window</b></dt>
+            <dd>이동 윈도우. 시간을 일정 이벤트 수만큼 묶어 b를 계산, 창을 옮기며 반복.</dd>
+          </dl>
+        </div>
+
+        <div class="gl-group">
+          <h4>지진·단층 용어</h4>
+          <dl>
+            <dt><b>Mainshock · Aftershock · Foreshock</b></dt>
+            <dd>본진 · 여진 · 전진. 가장 큰 이벤트를 본진, 그 이후 종속 이벤트를 여진, 이전의 작은 이벤트를 전진이라 함.</dd>
+            <dt><b>Doublet</b></dt>
+            <dd>이중 본진. 인접 단층에서 짧은 간격으로 비슷한 크기의 지진이 연속 발생하는 사례 (예: 2023 카흐라만마라쉬).</dd>
+            <dt><b>Megathrust</b></dt>
+            <dd>메가스러스트. 섭입대 판 경계에서 발생하는 거대한 역단층 지진 (예: 2011 도호쿠, 2004 수마트라).</dd>
+            <dt><b>Intraslab</b></dt>
+            <dd>판 내부 지진. 섭입한 판 내부 깊은 곳에서 발생 (예: 2018 앵커리지).</dd>
+            <dt><b>Subduction zone</b></dt>
+            <dd>섭입대. 해양판이 대륙판 아래로 가라앉는 경계부.</dd>
+            <dt><b>Strike-slip fault</b></dt>
+            <dd>주향이동단층. 수평으로 어긋나는 단층 (예: 북아나톨리아, 산안드레아스).</dd>
+          </dl>
+        </div>
+
+        <div class="gl-group">
+          <h4>기관·약어</h4>
+          <dl>
+            <dt><b>USGS</b></dt>
+            <dd>미국 지질조사국. 전세계 지진 카탈로그를 FDSN API로 실시간 제공.</dd>
+            <dt><b>ISC</b></dt>
+            <dd>국제지진센터(영국). 재검토 카탈로그. 갱신 ~2년 지연되나 정밀도 높음.</dd>
+            <dt><b>KMA</b></dt>
+            <dd>한국 기상청(Korea Meteorological Administration). 국내 지진 카탈로그 운영.</dd>
+            <dt><b>FDSN</b></dt>
+            <dd>International Federation of Digital Seismograph Networks. 공통 API 표준.</dd>
+            <dt><b>CORS</b></dt>
+            <dd>Cross-Origin Resource Sharing. 브라우저가 다른 도메인 API 호출을 허용하는 메커니즘.</dd>
+            <dt><b>CSV</b></dt>
+            <dd>Comma-Separated Values. 쉼표로 구분된 표 데이터 파일 형식.</dd>
+            <dt><b>EAFZ</b> <span class="ab">East Anatolian Fault Zone</span></dt>
+            <dd>동아나톨리아 단층대. 2023 카흐라만마라쉬 지진이 발생한 좌수향 주향이동단층.</dd>
+          </dl>
+        </div>
+
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ LAYOUT ============ -->
+  <div class="layout">
+
+    <nav class="steps">
+      <div class="label">실습 단계</div>
+      <a href="#step1" id="navStep1"><span class="num">01</span><span>데이터 수집</span></a>
+      <a href="#step2" id="navStep2"><span class="num">02</span><span>여진 제거</span></a>
+      <a href="#step3" id="navStep3"><span class="num">03</span><span>Mc 추정</span></a>
+      <a href="#step4" id="navStep4"><span class="num">04</span><span>b-값 계산</span></a>
+      <a href="#step5" id="navStep5"><span class="num">05</span><span>시간 변화</span></a>
+
+      <div class="legend">
+        <div style="margin-bottom:6px;font-weight:700;color:var(--ink-soft)">지도 범례</div>
+        <div><span class="dot" style="background:var(--accent-2)"></span>본진(독립지진)</div>
+        <div><span class="dot" style="background:var(--accent)"></span>여진</div>
+      </div>
+    </nav>
+
+    <main>
+
+    <!-- ============================================== -->
+    <!-- STEP 1: DATA COLLECTION                        -->
+    <!-- ============================================== -->
+    <section class="step" id="step1" data-num="01">
+      <h2>지진 카탈로그 수집</h2>
+      <p class="lede">
+        분석은 결국 데이터 품질에서 출발합니다. 어떤 지역·기간을 보느냐에 따라
+        b-값도, Mc도 달라지죠. 먼저 관심 지역과 기간을 정합시다.
+      </p>
+
+      <details class="theory">
+        <summary>왜 이렇게 하나요? — 카탈로그란 무엇인가</summary>
+        <div class="body">
+          <p><strong>지진 카탈로그(earthquake catalog)</strong>란 발생 시각·위치(위·경도·깊이)·규모를
+            정리해 놓은 표입니다. USGS, ISC, 한국기상청(KMA) 등이 운영합니다.</p>
+          <p>이 실습에서는 <code>USGS FDSN Event API</code>를 사용합니다(브라우저에서 직접 호출 가능).
+            관측망 차이 때문에 같은 지진도 카탈로그마다 규모가 ±0.2 정도 다를 수 있다는 점을 기억하세요.</p>
+          <p>학습용으로 다음 <strong>역사적 지진계열 프리셋</strong>을 준비해 두었습니다.
+            클릭하면 권장 검색 조건이 자동으로 채워집니다.</p>
+        </div>
+      </details>
+
+      <details class="theory">
+        <summary>ISC 카탈로그 CSV 추출 방법 (업로드용)</summary>
+        <div class="body">
+          <p><strong>ISC(International Seismological Centre)</strong>는 세계 최대 규모의 재검토(reviewed) 지진
+            카탈로그를 운영합니다. ISC는 CORS 정책상 브라우저에서 직접 호출할 수 없으므로,
+            ISC 사이트에서 CSV 형식으로 내려받은 뒤 아래 <code>CSV 업로드</code> 모드로 불러와 사용합니다.</p>
+
+          <ol class="steps-list">
+            <li><a href="http://www.isc.ac.uk/iscbulletin/search/catalogue/" target="_blank" rel="noopener">ISC Bulletin 검색 페이지</a>에 접속
+              (<code>www.isc.ac.uk → Data → ISC Bulletin → Event Catalogue</code>).</li>
+            <li><strong>Output format</strong>에서 <code>CSV</code> 선택.
+              <strong>Request type</strong>은 재검토된 자료가 필요하면 <code>REVIEWED</code>,
+              속보 포함은 <code>COMPREHENSIVE</code>.</li>
+            <li><strong>Search area</strong>: 위도·경도 사각형 또는 중심점 반경으로 지정. <br/>
+              <strong>Date range</strong>: 시작·종료일 입력. <br/>
+              <strong>Magnitude range</strong>: 최소 규모 지정(너무 낮으면 용량·시간↑).</li>
+            <li>페이지 하단 <code>Search</code> 클릭 → 결과가 CSV 텍스트로 화면에 표시됩니다.</li>
+            <li>브라우저에서 전체 텍스트를 복사 → 텍스트 편집기에 붙여넣고 <code>.csv</code> 확장자로 저장.
+              또는 <code>우클릭 → 다른 이름으로 저장</code>. <strong>파일은 UTF-8</strong>로 저장하세요.</li>
+            <li>위에서 <strong>데이터 출처 → “CSV 업로드”</strong> 선택 → 파일을 고르고 <code>가져오기</code> 클릭.</li>
+          </ol>
+
+          <p><strong>ISC CSV가 인식하는 컬럼</strong>: <code>DATE, TIME, LAT, LON, DEPTH, MAG</code> 이 헤더에 포함되면
+            자동으로 매핑됩니다. ISC 출력에 <code>EVENTID, AUTHOR, TYPE</code> 등 추가 열이 있어도 무시됩니다.</p>
+
+          <p><strong>팁 1</strong>: ISC 재검토 카탈로그는 갱신이 ~2년 느립니다. 최근 지진(예: 2025 캄차카)은 USGS를 쓰고,
+            역사적 이벤트(1964 알래스카, 2004 수마트라 전체 카탈로그)는 <strong>ISC-EHB 또는 ISC-GEM</strong>이
+            더 정밀합니다.</p>
+          <p><strong>팁 2</strong>: ISC-GEM 글로벌 목록(M≥5.5, 1904~현재)은 전체를 한 번에 받을 수 있습니다:
+            <code>www.isc.ac.uk/iscgem/</code>. 큰 지진 전역 통계에 적합합니다.</p>
+          <p><strong>팁 3</strong>: 한국 이벤트는 <strong>KMA</strong>(기상청 지진화산포털)에서 엑셀로 받은 뒤
+            열 이름을 <code>time, lat, lon, depth, mag</code>로 바꿔 저장해도 이 도구에서 읽습니다.</p>
+        </div>
+      </details>
+
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);margin:6px 0 4px">
+        프리셋 (클릭해 시작)
+      </div>
+      <div class="chip-row" id="presetChips"></div>
+
+      <div class="controls">
+        <div class="ctrl">
+          <label>중심 위도 <span class="val" id="vLat">35.77</span></label>
+          <input type="number" id="cLat" value="35.77" step="0.01" min="-90" max="90" />
+        </div>
+        <div class="ctrl">
+          <label>중심 경도 <span class="val" id="vLon">-117.60</span></label>
+          <input type="number" id="cLon" value="-117.60" step="0.01" min="-180" max="180" />
+        </div>
+        <div class="ctrl">
+          <label>반경 (km) <span class="val" id="vRad">120</span></label>
+          <input type="range" id="cRad" min="10" max="800" value="120" step="5" />
+        </div>
+        <div class="ctrl">
+          <label>최소 규모 (검색용) <span class="val" id="vMin">2.5</span></label>
+          <input type="range" id="cMin" min="0" max="7" value="2.5" step="0.1" />
+        </div>
+        <div class="ctrl">
+          <label>시작일</label>
+          <input type="date" id="cStart" value="2019-06-01" />
+        </div>
+        <div class="ctrl">
+          <label>종료일</label>
+          <input type="date" id="cEnd" value="2020-06-30" />
+        </div>
+        <div class="ctrl">
+          <label>최대 깊이 (km) <span class="val" id="vDepth">700</span></label>
+          <input type="range" id="cDepth" min="10" max="700" value="700" step="10" />
+        </div>
+        <div class="ctrl">
+          <label>데이터 출처</label>
+          <select id="cSource">
+            <option value="usgs">USGS FDSN (실시간)</option>
+            <option value="csv">CSV 업로드 (ISC / 사용자 파일)</option>
+            <option value="demo">오프라인 데모 데이터</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CSV 업로드 영역 -->
+      <div id="csvUploadBlock" class="csv-block" style="display:none">
+        <div class="ctrl" style="margin-bottom:10px">
+          <label>CSV 파일 선택 <span class="val" id="vCsvName">선택된 파일 없음</span></label>
+          <input type="file" id="csvFile" accept=".csv,.txt,text/csv,text/plain" />
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.65">
+          <strong>자동 인식 컬럼:</strong>
+          <code>time/date/origintime</code>, <code>lat/latitude</code>, <code>lon/longitude</code>,
+          <code>depth</code>, <code>mag/magnitude</code>. 그 외 컬럼은 무시됩니다.<br/>
+          <strong>적용 흐름:</strong> 파일을 읽고 → 위에서 설정한 위치/반경/기간/규모/깊이 필터를 브라우저에서 추가 적용합니다.
+          모든 데이터를 쓰려면 반경·기간을 넓게 설정하세요.
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn accent" id="btnFetch">카탈로그 가져오기 →</button>
+        <button class="btn ghost small" id="btnExportRaw" disabled>원본 CSV 내보내기</button>
+        <span class="badge" id="apiHint">USGS API · CORS 지원</span>
+      </div>
+
+      <div class="status" id="statusFetch">대기 중. 프리셋을 선택하거나 직접 조건을 설정한 뒤 “가져오기”를 누르세요.</div>
+
+      <div class="kpi-grid" id="kpiRaw">
+        <div class="kpi"><div class="lbl">총 이벤트</div><div class="num blue" id="kRawN">—</div></div>
+        <div class="kpi"><div class="lbl">규모 범위</div><div class="num" id="kRawMag">—</div></div>
+        <div class="kpi"><div class="lbl">기간 (일)</div><div class="num" id="kRawDays">—</div></div>
+        <div class="kpi"><div class="lbl">최대 규모</div><div class="num accent" id="kRawMax">—</div></div>
+      </div>
+
+      <div id="map"></div>
+      <div style="margin-top:6px">
+        <span class="leg-pill"><span class="sw" style="background:#4a6741"></span>아직 분류 전</span>
+        <span class="leg-pill"><span class="sw" style="background:var(--accent-2)"></span>본진(여진 제거 후)</span>
+        <span class="leg-pill"><span class="sw" style="background:var(--accent)"></span>여진</span>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- STEP 2: DECLUSTERING                           -->
+    <!-- ============================================== -->
+    <section class="step" id="step2" data-num="02">
+      <h2>여진 제거 (Declustering)</h2>
+      <p class="lede">
+        b-값 분석은 <em>독립적인</em> 지진들을 가정합니다. 한 본진에서 비롯된 수많은 여진은
+        통계를 왜곡하므로 솎아내야 합니다.
+      </p>
+
+      <details class="theory">
+        <summary>왜 이렇게 하나요? — Gardner–Knopoff(1974) 시공간 윈도우</summary>
+        <div class="body">
+          <p>본진의 규모가 클수록 여진은 더 멀리, 더 오래 발생합니다.
+            Gardner와 Knopoff(1974)는 캘리포니아 지진을 분석해 다음 경험식을 제시했습니다.</p>
+          <div class="formula">
+            $$L(M) = 10^{0.1238M + 0.983}\;\text{km}, \qquad
+              T(M) = \begin{cases} 10^{0.5409M - 0.547} & M < 6.5 \\
+                                   10^{0.032M + 2.7389} & M \ge 6.5 \end{cases}\;\text{일}$$
+          </div>
+          <p>알고리즘: ① 가장 큰 지진부터 본진(mainshock)으로 지정 → ② 그 본진 발생 후 시간 $T$ 안,
+            거리 $L$ 안에 있는 더 작은 지진들을 여진(aftershock)으로 표시 → ③ 다음으로 큰 본진으로 반복.</p>
+          <p><strong>한계</strong>: 윈도우가 고정값이라 지역마다 보정이 필요합니다.
+            더 정교한 방법으로는 Reasenberg(1985), Zaliapin–Ben-Zion(2013) 등이 있습니다.</p>
+        </div>
+      </details>
+
+      <div class="controls">
+        <div class="ctrl">
+          <label class="switch">
+            <input type="checkbox" id="declOn" checked />
+            <span class="track"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px">Gardner–Knopoff 적용</span>
+          </label>
+        </div>
+        <div class="ctrl">
+          <label>거리 윈도우 배율 <span class="val" id="vDeclL">1.0</span>×</label>
+          <input type="range" id="declL" min="0.5" max="2.0" value="1.0" step="0.1" />
+        </div>
+        <div class="ctrl">
+          <label>시간 윈도우 배율 <span class="val" id="vDeclT">1.0</span>×</label>
+          <input type="range" id="declT" min="0.5" max="2.0" value="1.0" step="0.1" />
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn" id="btnDecl" disabled>여진 분류 실행 →</button>
+      </div>
+
+      <div class="status" id="statusDecl">먼저 1단계에서 카탈로그를 받아주세요.</div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="lbl">본진 (독립지진)</div><div class="num blue" id="kMain">—</div></div>
+        <div class="kpi"><div class="lbl">여진</div><div class="num accent" id="kAfter">—</div></div>
+        <div class="kpi"><div class="lbl">여진 비율</div><div class="num amber" id="kAfterPct">—</div></div>
+        <div class="kpi"><div class="lbl">최대 본진</div><div class="num" id="kMainMax">—</div></div>
+      </div>
+
+      <div class="plot" id="plotMagTime"></div>
+      <div class="interp hide" id="interpDecl">
+        <div class="h">해석 가이드</div>
+        본진 발생 직후 짧은 시간 안에 작은 규모 지진이 폭발적으로 늘어나는 패턴이 보이면
+        그것이 전형적인 <strong>오모리 법칙(Omori law)</strong>의 형태입니다.
+        Gardner–Knopoff은 이 시기에 들어온 사건을 통계에서 제외합니다.
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- STEP 3: MAGNITUDE OF COMPLETENESS              -->
+    <!-- ============================================== -->
+    <section class="step" id="step3" data-num="03">
+      <h2>규모 완전성 Mc 추정</h2>
+      <p class="lede">
+        관측망은 작은 지진을 모두 잡지 못합니다. 어느 규모 이상부터 “빠짐없이” 기록되는지
+        — 그 임계값이 <strong>Mc</strong>입니다. 이걸 잘못 잡으면 b-값이 과소평가됩니다.
+      </p>
+
+      <details class="theory">
+        <summary>왜 이렇게 하나요? — MAXC와 빈도-규모 분포(FMD)</summary>
+        <div class="body">
+          <p>지진의 <strong>빈도-규모 분포(FMD)</strong>를 그리면, Mc 이상에서는 직선(GR 법칙)을 따르지만
+            Mc 이하에서는 관측이 누락되어 봉우리 형태가 나타납니다.</p>
+          <p><strong>MAXC 방법(Wiemer & Wyss, 2000)</strong>: 비누적 FMD에서 <em>가장 많은 지진이 들어 있는 규모 구간</em>
+            을 Mc로 추정합니다. 직관적이고 빠르지만 작은 카탈로그에서 과소평가되는 경향이 있어,
+            보통 +0.1~0.2 보정을 합니다.</p>
+          <p>이 실습에서는 자동 추정값을 보여주고, 시각적으로 확인하면서 직접 슬라이더로 조정할 수 있게 했습니다.</p>
+        </div>
+      </details>
+
+      <div class="controls">
+        <div class="ctrl">
+          <label>빈 너비 ΔM <span class="val" id="vBin">0.1</span></label>
+          <input type="range" id="cBin" min="0.05" max="0.5" value="0.1" step="0.05" />
+        </div>
+        <div class="ctrl">
+          <label>Mc (수동 조정) <span class="val" id="vMc">—</span></label>
+          <input type="range" id="cMc" min="0" max="6" value="2.0" step="0.1" />
+        </div>
+        <div class="ctrl">
+          <label>MAXC 보정 <span class="val" id="vMcCorr">+0.0</span></label>
+          <input type="range" id="cMcCorr" min="-0.3" max="0.5" value="0.0" step="0.05" />
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn" id="btnMc" disabled>Mc 자동 추정(MAXC) →</button>
+        <button class="btn ghost small" id="btnUseMc" disabled>이 Mc로 4단계 진행</button>
+      </div>
+
+      <div class="status" id="statusMc">2단계를 먼저 완료하세요.</div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="lbl">MAXC 추정</div><div class="num blue" id="kMcAuto">—</div></div>
+        <div class="kpi"><div class="lbl">현재 적용 Mc</div><div class="num accent" id="kMcUsed">—</div></div>
+        <div class="kpi"><div class="lbl">Mc 이상 이벤트</div><div class="num" id="kMcN">—</div></div>
+        <div class="kpi"><div class="lbl">분석 데이터셋</div><div class="num amber" id="kMcSource">—</div><div class="sub" id="kMcSourceSub"></div></div>
+      </div>
+
+      <div class="plot" id="plotFMD"></div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- STEP 4: B-VALUE                                -->
+    <!-- ============================================== -->
+    <section class="step" id="step4" data-num="04">
+      <h2>b-값 계산</h2>
+      <p class="lede">
+        구텐베르크–리히터 법칙: $\log_{10} N = a - bM$. 기울기 $b$가 작을수록
+        큰 지진의 비율이 상대적으로 높습니다. 보통 $b \approx 1.0$ 부근입니다.
+      </p>
+
+      <details class="theory">
+        <summary>왜 이렇게 하나요? — MLE(Aki, 1965)와 Shi & Bolt 표준오차</summary>
+        <div class="body">
+          <p><strong>최대우도법(Maximum Likelihood Estimate)</strong>이 통계적으로 가장 안정적입니다.
+            Utsu(1965)의 binning 보정을 포함하면:</p>
+          <div class="formula">
+            $$b = \frac{\log_{10}(e)}{\bar{M} - (M_c - \Delta M / 2)} \approx
+                  \frac{0.4343}{\bar{M} - (M_c - \Delta M / 2)}$$
+          </div>
+          <p>표준오차는 Shi & Bolt(1982):</p>
+          <div class="formula">
+            $$\sigma_b = 2.30 \cdot b^2 \cdot \sqrt{\frac{\sum (M_i - \bar{M})^2}{n(n-1)}}$$
+          </div>
+          <p>비교를 위해 누적 FMD에 직선을 회귀하는 <strong>최소제곱법(LSQ)</strong>도 함께 보여드립니다.
+            LSQ는 직관적이지만 누적 자료의 자기상관 때문에 일반적으로 b를 과소평가합니다.</p>
+          <p><strong>a-값</strong>은 GR 법칙의 정의에서 바로 유도됩니다. $\log_{10} N(\geq M_c) = a - b M_c$에서:</p>
+          <div class="formula">
+            $$a_{\text{MLE}} = \log_{10} N(\geq M_c) + b_{\text{MLE}} \cdot M_c$$
+          </div>
+          <p>즉, "Mc 이상의 이벤트 수"에 MLE b-값을 일관되게 결합한 값입니다. 이렇게 계산해야
+            FMD 그래프의 MLE 적합선이 데이터와 자연스럽게 맞습니다.</p>
+        </div>
+      </details>
+
+      <details class="theory">
+        <summary>왜 M<sub>max</sub> 상한을 둘까? — 거대지진 한 번이 통계를 지배할 때</summary>
+        <div class="body">
+          <p>카탈로그에 M9급 거대지진이 하나 들어 있고 나머지는 M5~6대라면, 그 한 이벤트가
+            $\bar{M}$을 크게 끌어올려 b-값을 비정상적으로 작게 만들 수 있습니다.</p>
+          <p>이 도구에서는 가장 단순한 방법 — <strong>카탈로그 절단(truncation)</strong> — 을 사용합니다:
+            <code>M &gt; M<sub>max</sub></code>인 이벤트를 계산에서 제외하고 Aki MLE를 그대로 적용.
+            고등학생·학부생 수준에서 투명하게 설명되는 방식입니다.</p>
+          <p>연구 목적이라면 Page(1968)/Weichert(1980)의 <strong>유계(bounded) MLE</strong>가
+            더 정식적입니다. 두 방법 모두 $M_{max}$가 실제 최대값보다 훨씬 클 때는 표준 Aki 식에 수렴합니다.</p>
+          <p><strong>실험해 보세요</strong>: 2011 도호쿠나 2025 캄차카 프리셋에서 M<sub>max</sub>를
+            7.5/8.0/9.0으로 바꿔가며 b-값이 어떻게 움직이는지 관찰하면, 극단치의 영향이 얼마나 큰지 실감할 수 있습니다.</p>
+        </div>
+      </details>
+
+      <div class="controls">
+        <div class="ctrl">
+          <label class="switch">
+            <input type="checkbox" id="mMaxOn" />
+            <span class="track"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px">M<sub>max</sub> 상한 적용</span>
+          </label>
+        </div>
+        <div class="ctrl">
+          <label>M<sub>max</sub> 값 <span class="val" id="vMmax">—</span></label>
+          <input type="range" id="cMmax" min="3" max="10" value="10" step="0.1" disabled />
+        </div>
+        <div class="ctrl" style="align-self:end">
+          <button class="btn small" id="btnRecalcB" disabled>M<sub>max</sub> 적용 후 재계산 →</button>
+        </div>
+      </div>
+
+      <div class="status" id="statusB">3단계에서 Mc를 결정한 뒤 다시 오세요.</div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="lbl">b-값 (MLE)</div><div class="num accent" id="kB">—</div><div class="sub" id="kBerr"></div></div>
+        <div class="kpi"><div class="lbl">b-값 (LSQ)</div><div class="num blue" id="kBlsq">—</div></div>
+        <div class="kpi"><div class="lbl">a-값 (MLE)</div><div class="num amber" id="kA">—</div></div>
+        <div class="kpi"><div class="lbl">사용 이벤트</div><div class="num" id="kBn">—</div></div>
+      </div>
+
+      <div class="plot-row">
+        <div class="plot" id="plotGR"></div>
+        <div class="plot" id="plotResid"></div>
+      </div>
+
+      <div class="interp hide" id="interpB">
+        <div class="h">결과 해석</div>
+        <div id="interpBtext"></div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- STEP 5: TEMPORAL VARIATION                     -->
+    <!-- ============================================== -->
+    <section class="step" id="step5" data-num="05">
+      <h2>b-값의 시간적 변화</h2>
+      <p class="lede">
+        b-값이 시간에 따라 변할 수 있습니다. 본진 직전 b-값이 떨어진다는 보고가 있고
+        (응력 누적 가설), 본진 직후에는 일반적으로 다시 올라갑니다.
+      </p>
+
+      <details class="theory">
+        <summary>왜 이렇게 하나요? — 이동 윈도우 분석</summary>
+        <div class="body">
+          <p>시간을 따라 일정 개수($n$)의 이벤트로 묶어 b-값을 계산하고, 윈도우를 step만큼 옮기며 반복합니다.</p>
+          <p>윈도우가 너무 작으면 노이즈가 크고, 너무 크면 변화를 감지하지 못합니다.
+            보통 $n = 50 \sim 200$ 사이에서 시작하는 것이 일반적입니다.</p>
+          <p><strong>주의</strong>: Mc는 시간에 따라 변할 수 있습니다 (관측망 개선, 군발지진 시 임시 증가).
+            이 실습에서는 단순화를 위해 전체 기간 동일 Mc를 적용하지만,
+            실제 연구에서는 시간변동 Mc를 사용합니다.</p>
+        </div>
+      </details>
+
+      <div class="controls">
+        <div class="ctrl">
+          <label>윈도우 크기 (이벤트 수) <span class="val" id="vWin">100</span></label>
+          <input type="range" id="cWin" min="20" max="500" value="100" step="10" />
+        </div>
+        <div class="ctrl">
+          <label>이동 step (이벤트 수) <span class="val" id="vStep">10</span></label>
+          <input type="range" id="cStep" min="1" max="100" value="10" step="1" />
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn" id="btnTime" disabled>시간 변화 계산 →</button>
+        <button class="btn ghost small" id="btnExportB" disabled>b(t) CSV 내보내기</button>
+      </div>
+
+      <div class="status" id="statusTime">4단계 b-값 계산까지 완료하세요.</div>
+
+      <div class="plot" id="plotBtime" style="min-height:380px"></div>
+
+      <div class="interp">
+        <div class="h">학생 토론거리</div>
+        ① 본진 발생 시점 전후로 b-값에 변화가 보이는가? ②
+        같은 윈도우 크기에서도 step을 바꾸면 결과가 어떻게 달라지나? ③
+        Mc 보정값을 +0.2 올리면 b-값과 시계열이 어떻게 변할까?
+      </div>
+    </section>
+
+    </main>
+  </div>
+
+  <footer>
+    <div>구텐베르크–리히터 실습실 · 단일 HTML · 모든 처리는 사용자의 브라우저 안에서 일어납니다.</div>
+    <div>데이터: <a href="https://earthquake.usgs.gov/fdsnws/event/1/" target="_blank" rel="noopener">USGS FDSN Event Service</a> ·
+      여진제거: Gardner & Knopoff (1974) ·
+      Mc/MAXC: Wiemer & Wyss (2000) ·
+      b-MLE: Aki (1965), Utsu (1965) ·
+      σ<sub>b</sub>: Shi & Bolt (1982).</div>
+    <div style="margin-top:8px">교육 목적의 단순화된 구현입니다. 연구용은 ZMAP, ObsPy 등 검증된 도구를 사용하세요.</div>
+  </footer>
+</div>
+
+<!-- ============================== SCRIPTS ============================== -->
+<script>
+'use strict';
+
+/* ============================================================
+   0. State and constants
+   ============================================================ */
+const STATE = {
+  raw: [],          // {time, lat, lon, depth, mag, id}
+  filtered: [],     // declustering 적용 결과 (or copy of raw)
+  declustered: [],  // mainshock만
+  mc: null,
+  bResult: null,    // {b, sigma, a, blsq, n, mcUsed, dM}
+  binWidth: 0.1,
+  map: null,
+  layerGroup: null
+};
+
+const PRESETS = {
+  sumatra: {
+    label: "2004 수마트라-안다만 (M9.1)",
+    lat: 3.30, lon: 95.98, radius: 600,
+    start: "2004-10-01", end: "2006-12-31",
+    minmag: 4.5,
+  },
+  tohoku: {
+    label: "2011 도호쿠 (M9.1)",
+    lat: 38.30, lon: 142.37, radius: 500,
+    start: "2010-09-01", end: "2012-06-30",
+    minmag: 4.5,
+  },
+  chignik: {
+    label: "2021 알래스카 치그닉 (M8.2)",
+    lat: 55.36, lon: -157.89, radius: 300,
+    start: "2021-01-01", end: "2022-12-31",
+    minmag: 3.0,
+  },
+  ridgecrest: {
+    label: "2019 리지크레스트 (M7.1)",
+    lat: 35.77, lon: -117.60, radius: 120,
+    start: "2019-06-01", end: "2020-06-30",
+    minmag: 2.5,
+  },
+  kahramanmaras: {
+    label: "2023 튀르키예 카흐라만마라쉬 (M7.8+M7.5)",
+    lat: 37.17, lon: 37.08, radius: 250,
+    start: "2022-06-01", end: "2024-06-30",
+    minmag: 3.0,
+  },
+  kamchatka: {
+    label: "2025 캄차카 (M8.8)",
+    lat: 52.50, lon: 160.00, radius: 400,
+    start: "2025-01-01", end: "2026-04-15",
+    minmag: 4.5,
+  },
+  socal: {
+    label: "남캘리포니아 (학습 표준)",
+    lat: 34.05, lon: -117.50, radius: 250,
+    start: "2019-01-01", end: "2021-12-31",
+    minmag: 2.5,
+  }
+};
+
+/* ============================================================
+   1. UI binding helpers
+   ============================================================ */
+function bindRange(inputId, valId, fmt = (v) => v) {
+  const el = document.getElementById(inputId);
+  const vl = document.getElementById(valId);
+  const update = () => { vl.textContent = fmt(el.value); };
+  el.addEventListener('input', update);
+  update();
+}
+function bindNumber(inputId, valId, fmt = (v) => v) {
+  const el = document.getElementById(inputId);
+  const vl = document.getElementById(valId);
+  if (!vl) return;
+  const update = () => { vl.textContent = fmt(el.value); };
+  el.addEventListener('input', update);
+  update();
+}
+
+bindRange('cRad', 'vRad', v => v + ' km');
+bindRange('cMin', 'vMin', v => Number(v).toFixed(1));
+bindRange('cDepth', 'vDepth', v => v + ' km');
+bindRange('declL', 'vDeclL', v => Number(v).toFixed(1));
+bindRange('declT', 'vDeclT', v => Number(v).toFixed(1));
+bindRange('cBin', 'vBin', v => Number(v).toFixed(2));
+bindRange('cMc', 'vMc', v => Number(v).toFixed(1));
+bindRange('cMcCorr', 'vMcCorr', v => (Number(v) >= 0 ? '+' : '') + Number(v).toFixed(2));
+bindRange('cWin', 'vWin', v => v);
+bindRange('cStep', 'vStep', v => v);
+bindNumber('cLat', 'vLat', v => Number(v).toFixed(2));
+bindNumber('cLon', 'vLon', v => Number(v).toFixed(2));
+
+// 실습일 기본값: 오늘
+(function initLabDate(){
+  const el = document.getElementById('labDate');
+  if (!el) return;
+  const today = new Date();
+  const iso = today.getFullYear() + '-' +
+              String(today.getMonth()+1).padStart(2,'0') + '-' +
+              String(today.getDate()).padStart(2,'0');
+  el.value = iso;
+})();
+
+/* ============================================================
+   2. Preset chips
+   ============================================================ */
+const chipRow = document.getElementById('presetChips');
+Object.entries(PRESETS).forEach(([key, p]) => {
+  const chip = document.createElement('button');
+  chip.className = 'chip';
+  chip.textContent = p.label;
+  chip.onclick = () => {
+    document.getElementById('cLat').value = p.lat;
+    document.getElementById('cLon').value = p.lon;
+    document.getElementById('cRad').value = p.radius;
+    document.getElementById('cStart').value = p.start;
+    document.getElementById('cEnd').value = p.end;
+    document.getElementById('cMin').value = p.minmag;
+    // refresh displays
+    ['cLat','cLon','cRad','cMin'].forEach(id => {
+      document.getElementById(id).dispatchEvent(new Event('input'));
+    });
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    setStatus('statusFetch', `프리셋 “${p.label}” 적용됨. “가져오기”를 누르세요.`, 'ok');
+  };
+  chipRow.appendChild(chip);
+});
+
+/* ============================================================
+   3. Map
+   ============================================================ */
+function initMap() {
+  if (STATE.map) return;
+  STATE.map = L.map('map', { worldCopyJump: true }).setView([35.76, 129.19], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© OpenStreetMap',
+    opacity: 0.85
+  }).addTo(STATE.map);
+  STATE.layerGroup = L.layerGroup().addTo(STATE.map);
+}
+function refreshMap(events, mode = 'raw') {
+  initMap();
+  STATE.layerGroup.clearLayers();
+  if (!events || events.length === 0) return;
+
+  const colors = {
+    raw: '#4a6741',
+    main: '#2d5f7c',
+    after: '#b8401f'
+  };
+  events.forEach(e => {
+    const tag = (mode === 'cls' && e.cluster !== undefined)
+      ? (e.isMain ? 'main' : 'after')
+      : 'raw';
+    const r = Math.max(2, Math.pow(1.6, e.mag) * 0.5);
+    const m = L.circleMarker([e.lat, e.lon], {
+      radius: r,
+      color: colors[tag],
+      weight: 0.5,
+      fillColor: colors[tag],
+      fillOpacity: 0.55,
+    }).bindTooltip(
+      `M${e.mag.toFixed(1)} · ${new Date(e.time).toISOString().slice(0,10)} · ${e.depth.toFixed(0)}km`,
+      {direction:'top'}
+    );
+    STATE.layerGroup.addLayer(m);
+  });
+  // fit bounds
+  const lats = events.map(e=>e.lat), lons = events.map(e=>e.lon);
+  STATE.map.fitBounds([[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]],
+                      {padding:[20,20], maxZoom: 9});
+}
+
+/* ============================================================
+   4. Data fetching
+   ============================================================ */
+function setStatus(id, msg, cls = '') {
+  const el = document.getElementById(id);
+  el.className = 'status ' + cls;
+  el.innerHTML = msg;
+}
+
+async function fetchUSGS(p) {
+  const url = new URL('https://earthquake.usgs.gov/fdsnws/event/1/query');
+  url.searchParams.set('format', 'geojson');
+  url.searchParams.set('starttime', p.start);
+  url.searchParams.set('endtime', p.end);
+  url.searchParams.set('latitude', p.lat);
+  url.searchParams.set('longitude', p.lon);
+  url.searchParams.set('maxradiuskm', p.radius);
+  url.searchParams.set('minmagnitude', p.minmag);
+  url.searchParams.set('maxdepth', p.maxdepth);
+  url.searchParams.set('orderby', 'time-asc');
+  url.searchParams.set('limit', 20000);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`USGS HTTP ${res.status}`);
+  const j = await res.json();
+
+  return j.features.map((f, i) => ({
+    id: f.id || `e${i}`,
+    time: f.properties.time,                 // ms epoch
+    mag: f.properties.mag,
+    lat: f.geometry.coordinates[1],
+    lon: f.geometry.coordinates[0],
+    depth: f.geometry.coordinates[2] || 0
+  })).filter(e => e.mag !== null && e.mag !== undefined);
+}
+
+/* Synthetic offline catalog: GR-distributed magnitudes around Mc=1.6, b=1.0,
+   with one M5.5 mainshock + Omori-decaying aftershocks */
+function generateDemoCatalog() {
+  const events = [];
+  const t0 = new Date('2018-01-01').getTime();
+  const dayMs = 86400000;
+  const baseLat = 35.76, baseLon = 129.19;
+
+  // Background seismicity: GR distribution, b=1.0, Mc=1.6
+  const Nbg = 800;
+  const b = 1.0, Mc = 1.6;
+  for (let i = 0; i < Nbg; i++) {
+    // truncated GR via inverse CDF: M = Mc - (1/b)*log10(1-u), u in [0,1)
+    const u = Math.random();
+    const M = Mc - (1/b) * Math.log10(1 - u * 0.999);
+    if (M > 7.5) continue;
+    events.push({
+      id: `bg${i}`,
+      time: t0 + Math.random() * 730 * dayMs,  // 2 years
+      mag: Math.round(M * 10) / 10,
+      lat: baseLat + (Math.random()-0.5) * 1.2,
+      lon: baseLon + (Math.random()-0.5) * 1.2,
+      depth: 5 + Math.random() * 25
+    });
+  }
+  // Mainshock at day 365
+  const mainTime = t0 + 365 * dayMs;
+  events.push({
+    id: 'main', time: mainTime, mag: 5.5,
+    lat: baseLat, lon: baseLon, depth: 12
+  });
+  // Aftershocks: Omori-Utsu, p=1.1, c=0.05 days
+  const Naf = 500;
+  for (let i = 0; i < Naf; i++) {
+    const u = Math.random();
+    // sample t from Omori
+    const t = 0.05 * (Math.pow(1-u, -1/0.1) - 1); // days; rough
+    if (t > 200) continue;
+    const Maf = Mc - (1/b) * Math.log10(1 - Math.random()*0.999);
+    if (Maf > 5.0) continue;
+    events.push({
+      id: `af${i}`,
+      time: mainTime + t * dayMs,
+      mag: Math.round(Maf * 10) / 10,
+      lat: baseLat + (Math.random()-0.5) * 0.4,
+      lon: baseLon + (Math.random()-0.5) * 0.4,
+      depth: 5 + Math.random() * 20
+    });
+  }
+  events.sort((a,b) => a.time - b.time);
+  return events;
+}
+
+/* =========================================================
+   CSV parsing — supports ISC/USGS/KMA-style headers
+   ========================================================= */
+// Robust CSV line parser (handles quoted fields with commas)
+function parseCSVLine(line) {
+  const out = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',' || ch === '\t' || ch === ';') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+
+function findHeaderRow(lines) {
+  // Look through first ~20 lines for the row that has a recognizable header
+  const keywords = ['lat','latitude','lon','longitude','mag','magnitude','depth','time','date','origintime'];
+  for (let i = 0; i < Math.min(lines.length, 30); i++) {
+    const cells = parseCSVLine(lines[i]).map(c => c.toLowerCase());
+    let hits = 0;
+    for (const c of cells) for (const k of keywords) if (c === k || c.includes(k)) { hits++; break; }
+    if (hits >= 3) return i;
+  }
+  return 0;
+}
+
+function parseCSV(text) {
+  const raw = text.split(/\r?\n/);
+  // Skip fully blank lines and comment-looking lines
+  const lines = raw.filter(l => l.trim().length > 0 && !l.trim().startsWith('#') && !l.trim().startsWith('--'));
+  if (lines.length < 2) throw new Error('CSV가 비었거나 헤더가 없습니다.');
+
+  const hdrIdx = findHeaderRow(lines);
+  const headers = parseCSVLine(lines[hdrIdx]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+  const find = (candidates) => {
+    for (const c of candidates) {
+      const i = headers.findIndex(h => h === c);
+      if (i >= 0) return i;
+    }
+    // fallback: contains
+    for (const c of candidates) {
+      const i = headers.findIndex(h => h.includes(c));
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+
+  const iLat = find(['latitude','lat']);
+  const iLon = find(['longitude','lon','lng']);
+  const iMag = find(['mag','magnitude','mw','mb','ms','ml']);
+  const iDepth = find(['depth','depthkm']);
+  const iTime = find(['time','origintime','datetime']);
+  const iDate = find(['date']);
+  const iTOD  = find(['time','origintime']);   // may overlap with iTime
+
+  if (iLat < 0 || iLon < 0 || iMag < 0) {
+    throw new Error(`필수 컬럼(lat/lon/mag)을 찾을 수 없습니다. 인식된 헤더: ${headers.join(', ')}`);
+  }
+
+  const events = [];
+  let skipped = 0;
+  for (let i = hdrIdx + 1; i < lines.length; i++) {
+    const c = parseCSVLine(lines[i]);
+    if (c.length < headers.length - 2) { skipped++; continue; }
+
+    // Build timestamp — try time column first, then DATE + TIME combo
+    let t = NaN;
+    if (iTime >= 0 && c[iTime] && c[iTime].length >= 8) {
+      t = Date.parse(c[iTime].replace(' ','T') + (c[iTime].endsWith('Z')?'':'Z'));
+    }
+    if (!isFinite(t) && iDate >= 0) {
+      const dateStr = (c[iDate] || '').replace(/\//g,'-');
+      const timeStr = (iTOD >= 0 && iTOD !== iDate ? c[iTOD] : '00:00:00') || '00:00:00';
+      t = Date.parse(`${dateStr}T${timeStr}Z`);
+    }
+
+    const lat = parseFloat(c[iLat]);
+    const lon = parseFloat(c[iLon]);
+    const depth = iDepth >= 0 ? (parseFloat(c[iDepth]) || 0) : 0;
+    const mag = parseFloat(c[iMag]);
+
+    if (!isFinite(t) || !isFinite(lat) || !isFinite(lon) || !isFinite(mag)) {
+      skipped++; continue;
+    }
+    events.push({ id: `csv${i}`, time: t, lat, lon, depth, mag });
+  }
+  events.sort((a,b) => a.time - b.time);
+  return { events, skipped, headers };
+}
+
+/* Client-side geographic/temporal/magnitude/depth filter */
+function filterCatalog(events, p) {
+  const tStart = new Date(p.start).getTime();
+  const tEnd = new Date(p.end).getTime() + 86400000;
+  return events.filter(e => {
+    if (e.time < tStart || e.time > tEnd) return false;
+    if (e.mag < p.minmag) return false;
+    if (e.depth > p.maxdepth) return false;
+    if (haversine(e.lat, e.lon, p.lat, p.lon) > p.radius) return false;
+    return true;
+  });
+}
+
+/* =========================================================
+   CSV upload UI wiring
+   ========================================================= */
+let csvCached = null;  // last parsed CSV events (unfiltered)
+
+document.getElementById('cSource').addEventListener('change', (e) => {
+  const isCSV = e.target.value === 'csv';
+  document.getElementById('csvUploadBlock').style.display = isCSV ? 'block' : 'none';
+  document.getElementById('apiHint').textContent =
+    isCSV ? 'CSV · 브라우저 로컬 파싱'
+    : (e.target.value === 'usgs' ? 'USGS API · CORS 지원' : '데모 · 브라우저 합성');
+});
+
+document.getElementById('csvFile').addEventListener('change', (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  document.getElementById('vCsvName').textContent = f.name + ` (${(f.size/1024).toFixed(1)}KB)`;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const { events, skipped, headers } = parseCSV(reader.result);
+      csvCached = events;
+      setStatus('statusFetch',
+        `✓ CSV 로드 완료: ${events.length.toLocaleString()}개 이벤트 파싱 (건너뜀 ${skipped}). 이제 “가져오기”를 눌러 필터를 적용하세요.`,
+        'ok');
+    } catch (err) {
+      csvCached = null;
+      setStatus('statusFetch', `❌ CSV 파싱 실패: ${err.message}`, 'err');
+    }
+  };
+  reader.onerror = () => {
+    setStatus('statusFetch', `❌ 파일 읽기 실패`, 'err');
+  };
+  reader.readAsText(f, 'utf-8');
+});
+
+document.getElementById('btnFetch').addEventListener('click', async () => {
+  const params = {
+    lat: parseFloat(document.getElementById('cLat').value),
+    lon: parseFloat(document.getElementById('cLon').value),
+    radius: parseFloat(document.getElementById('cRad').value),
+    minmag: parseFloat(document.getElementById('cMin').value),
+    maxdepth: parseFloat(document.getElementById('cDepth').value),
+    start: document.getElementById('cStart').value,
+    end: document.getElementById('cEnd').value
+  };
+  const source = document.getElementById('cSource').value;
+  const srcLabel = source === 'usgs' ? 'USGS' : source === 'csv' ? '업로드된 CSV' : '데모 데이터';
+  setStatus('statusFetch', `<span class="spin"></span> ${srcLabel} 로부터 가져오는 중…`);
+
+  try {
+    let events;
+    if (source === 'usgs') {
+      events = await fetchUSGS(params);
+    } else if (source === 'csv') {
+      if (!csvCached) {
+        setStatus('statusFetch', '❌ 먼저 CSV 파일을 선택해 주세요.', 'err');
+        return;
+      }
+      const before = csvCached.length;
+      events = filterCatalog(csvCached, params);
+      if (events.length === 0) {
+        setStatus('statusFetch',
+          `⚠ CSV에는 ${before}개 이벤트가 있으나 현재 필터(반경 ${params.radius}km, M≥${params.minmag}, 기간 ${params.start}~${params.end})에 걸리는 건 0개입니다. 필터를 넓혀보세요.`,
+          'warn');
+        return;
+      }
+    } else {
+      events = generateDemoCatalog();
+    }
+    if (events.length === 0) {
+      setStatus('statusFetch', '조건에 맞는 지진이 없습니다. 기간이나 반경을 넓혀 보세요.', 'warn');
+      return;
+    }
+    STATE.raw = events;
+    STATE.filtered = events.slice();
+    STATE.declustered = events.slice();  // until step 2
+    updateRawKPIs(events);
+    refreshMap(events, 'raw');
+    drawMagTime(events, false);
+
+    let extraMsg = '';
+    if (source === 'csv') extraMsg = ` (CSV 전체 ${csvCached.length.toLocaleString()}개 중 필터 통과)`;
+    setStatus('statusFetch',
+      `✓ ${events.length.toLocaleString()}개 이벤트 로드 완료${extraMsg}. 다음 단계로 진행하세요.`, 'ok');
+    document.getElementById('btnDecl').disabled = false;
+    document.getElementById('btnExportRaw').disabled = false;
+    document.getElementById('navStep1').classList.add('done');
+    setStatus('statusDecl', '준비 완료. 여진 제거를 실행하세요.');
+  } catch (err) {
+    console.error(err);
+    setStatus('statusFetch',
+      `❌ ${err.message}. 네트워크 연결을 확인하거나 ‘오프라인 데모 데이터’를 사용해 보세요.`, 'err');
+  }
+});
+
+function updateRawKPIs(events) {
+  document.getElementById('kRawN').textContent = events.length.toLocaleString();
+  const mags = events.map(e=>e.mag);
+  const minM = Math.min(...mags), maxM = Math.max(...mags);
+  document.getElementById('kRawMag').innerHTML =
+    `${minM.toFixed(1)}<span class="unit"> – </span>${maxM.toFixed(1)}`;
+  const days = Math.round((events[events.length-1].time - events[0].time) / 86400000);
+  document.getElementById('kRawDays').innerHTML = days.toLocaleString();
+  document.getElementById('kRawMax').textContent = maxM.toFixed(1);
+}
+
+/* ============================================================
+   5. Magnitude-time plot
+   ============================================================ */
+function drawMagTime(events, classified) {
+  const main = events.filter(e => !classified || e.isMain);
+  const after = classified ? events.filter(e => !e.isMain) : [];
+
+  const traces = [{
+    x: main.map(e => new Date(e.time)),
+    y: main.map(e => e.mag),
+    mode: 'markers',
+    name: classified ? '본진(독립)' : '전체 이벤트',
+    marker: {
+      size: main.map(e => Math.max(3, Math.pow(1.5, e.mag))),
+      color: '#2d5f7c', opacity: 0.55,
+      line: {width: 0.3, color: '#1a1f2e'}
+    }
+  }];
+  if (classified && after.length > 0) {
+    traces.push({
+      x: after.map(e => new Date(e.time)),
+      y: after.map(e => e.mag),
+      mode: 'markers',
+      name: '여진',
+      marker: {
+        size: after.map(e => Math.max(3, Math.pow(1.5, e.mag))),
+        color: '#b8401f', opacity: 0.45,
+        line: {width: 0.3, color: '#1a1f2e'}
+      }
+    });
+  }
+  Plotly.newPlot('plotMagTime', traces, {
+    title: { text: '시간 vs 규모 (Magnitude-time)', font:{family:'Pretendard, sans-serif', size:14}},
+    xaxis: { title: '시간', gridcolor:'#e0d8c1' },
+    yaxis: { title: '규모 M', gridcolor:'#e0d8c1' },
+    paper_bgcolor: '#f7f1e1', plot_bgcolor: '#fbf7ed',
+    font: { family: 'Pretendard, sans-serif', color:'#1a1f2e', size:11 },
+    margin: {t:36, r:14, b:42, l:50},
+    legend: {orientation:'h', y: 1.12}
+  }, {responsive:true, displaylogo:false});
+}
+
+/* ============================================================
+   6. Declustering — Gardner-Knopoff (1974)
+   ============================================================ */
+function gkWindow(M, scaleL = 1.0, scaleT = 1.0) {
+  const L = Math.pow(10, 0.1238 * M + 0.983) * scaleL;     // km
+  const T = (M < 6.5)
+    ? Math.pow(10, 0.5409 * M - 0.547) * scaleT             // days
+    : Math.pow(10, 0.032  * M + 2.7389) * scaleT;
+  return { L, T };
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function decluster(events, scaleL = 1.0, scaleT = 1.0) {
+  // sort by magnitude descending
+  const byMag = events.map((e, i) => ({...e, _idx: i, isMain: true, cluster: -1}))
+                      .sort((a,b) => b.mag - a.mag);
+  const flagged = new Map(); // id -> isAftershock
+  byMag.forEach(e => flagged.set(e.id, {isMain: true, cluster: -1}));
+
+  let cid = 0;
+  for (const main of byMag) {
+    if (!flagged.get(main.id).isMain) continue;
+    const { L, T } = gkWindow(main.mag, scaleL, scaleT);
+    const Tms = T * 86400000;
+    flagged.get(main.id).cluster = cid;
+    let isClusterStart = false;
+
+    // forward + backward look (commonly forward in original)
+    for (const cand of byMag) {
+      if (cand.id === main.id) continue;
+      if (cand.mag >= main.mag) continue;
+      const dt = cand.time - main.time;
+      if (dt < 0 || dt > Tms) continue;        // forward only
+      const d = haversine(main.lat, main.lon, cand.lat, cand.lon);
+      if (d > L) continue;
+      // mark as aftershock
+      flagged.set(cand.id, {isMain: false, cluster: cid});
+      isClusterStart = true;
+    }
+    if (isClusterStart) cid++;
+  }
+  // restore time order
+  return events.map(e => ({...e, isMain: flagged.get(e.id).isMain, cluster: flagged.get(e.id).cluster}));
+}
+
+document.getElementById('btnDecl').addEventListener('click', () => {
+  if (STATE.raw.length === 0) return;
+  const on = document.getElementById('declOn').checked;
+  const sL = parseFloat(document.getElementById('declL').value);
+  const sT = parseFloat(document.getElementById('declT').value);
+
+  setStatus('statusDecl', '<span class="spin"></span> 여진 분류 중…');
+  setTimeout(() => {  // small async to allow UI
+    let classified;
+    if (on) {
+      classified = decluster(STATE.raw, sL, sT);
+    } else {
+      classified = STATE.raw.map(e => ({...e, isMain: true, cluster: -1}));
+    }
+    STATE.filtered = classified;
+    STATE.declustered = classified.filter(e => e.isMain);
+
+    const nMain = STATE.declustered.length;
+    const nAfter = classified.length - nMain;
+    const pct = ((nAfter / classified.length) * 100).toFixed(1);
+    const maxMain = Math.max(...STATE.declustered.map(e => e.mag));
+
+    document.getElementById('kMain').textContent = nMain.toLocaleString();
+    document.getElementById('kAfter').textContent = nAfter.toLocaleString();
+    document.getElementById('kAfterPct').innerHTML = `${pct}<span class="unit">%</span>`;
+    document.getElementById('kMainMax').textContent = maxMain.toFixed(1);
+
+    refreshMap(classified, 'cls');
+    drawMagTime(classified, on);
+    setStatus('statusDecl',
+      on ? `✓ 본진 ${nMain.toLocaleString()}, 여진 ${nAfter.toLocaleString()} 으로 분류 완료.`
+         : `✓ 여진 제거 비활성화 — 모든 이벤트를 ‘본진’으로 처리합니다.`, 'ok');
+
+    document.getElementById('btnMc').disabled = false;
+    document.getElementById('navStep2').classList.add('done');
+    document.getElementById('interpDecl').classList.remove('hide');
+    setStatus('statusMc', '준비 완료. Mc 자동 추정을 실행하세요.');
+  }, 30);
+});
+
+/* ============================================================
+   7. Mc estimation — MAXC method (Wiemer & Wyss 2000)
+   ============================================================ */
+function magnitudeBins(mags, dM) {
+  const minM = Math.floor(Math.min(...mags) / dM) * dM;
+  const maxM = Math.ceil(Math.max(...mags) / dM) * dM;
+  const nbin = Math.round((maxM - minM) / dM) + 1;
+  const centers = [], counts = new Array(nbin).fill(0);
+  for (let i = 0; i < nbin; i++) centers.push(minM + i * dM);
+  for (const m of mags) {
+    const k = Math.round((m - minM) / dM);
+    if (k >= 0 && k < nbin) counts[k]++;
+  }
+  // cumulative N(>= M)
+  const cum = new Array(nbin).fill(0);
+  let s = 0;
+  for (let i = nbin - 1; i >= 0; i--) { s += counts[i]; cum[i] = s; }
+  return { centers, counts, cum, dM, minM, maxM };
+}
+function estimateMcMAXC(mags, dM) {
+  const fmd = magnitudeBins(mags, dM);
+  let maxN = 0, maxIdx = 0;
+  for (let i = 0; i < fmd.counts.length; i++) {
+    if (fmd.counts[i] > maxN) { maxN = fmd.counts[i]; maxIdx = i; }
+  }
+  return fmd.centers[maxIdx];
+}
+
+function drawFMD(events, mc, dM) {
+  if (events.length === 0) return;
+  const mags = events.map(e => e.mag);
+  const fmd = magnitudeBins(mags, dM);
+  // For log-y: replace 0 with NaN
+  const counts = fmd.counts.map(c => c > 0 ? c : null);
+  const cum = fmd.cum.map(c => c > 0 ? c : null);
+
+  const traces = [
+    {
+      x: fmd.centers, y: cum,
+      mode: 'lines+markers',
+      name: '누적 N(≥M)',
+      marker: {color:'#2d5f7c', size: 6},
+      line: {color:'#2d5f7c', width: 1.5}
+    },
+    {
+      x: fmd.centers, y: counts,
+      mode: 'markers',
+      name: '비누적 n(M)',
+      marker: {color:'#b8401f', size: 7, symbol:'square-open', line:{width:1.5}}
+    }
+  ];
+
+  // Mc vertical line
+  const layout = {
+    title: { text:`빈도-규모 분포 (FMD) · ΔM=${dM}`, font:{family:'Pretendard',size:14}},
+    xaxis: { title: '규모 M', gridcolor:'#e0d8c1' },
+    yaxis: { title: '이벤트 수 (log)', type: 'log', gridcolor:'#e0d8c1' },
+    paper_bgcolor: '#f7f1e1', plot_bgcolor: '#fbf7ed',
+    font: { family:'Pretendard, sans-serif', color:'#1a1f2e', size:11 },
+    margin: {t:36, r:14, b:42, l:60},
+    shapes: mc !== null ? [{
+      type:'line', x0: mc, x1: mc, yref:'paper', y0:0, y1:1,
+      line:{color:'#c08a1f', width:2, dash:'dash'}
+    }] : [],
+    annotations: mc !== null ? [{
+      x: mc, yref:'paper', y: 1.04, text:`Mc = ${mc.toFixed(2)}`,
+      showarrow:false, font:{color:'#c08a1f', size:12, family:'JetBrains Mono'}
+    }] : [],
+    legend: {orientation:'h', y: 1.12}
+  };
+  Plotly.newPlot('plotFMD', traces, layout, {responsive:true, displaylogo:false});
+}
+
+document.getElementById('btnMc').addEventListener('click', () => {
+  const dM = parseFloat(document.getElementById('cBin').value);
+  STATE.binWidth = dM;
+  const mags = STATE.declustered.map(e => e.mag);
+  if (mags.length < 30) {
+    setStatus('statusMc', `이벤트가 너무 적습니다 (${mags.length}). 1단계에서 더 많은 데이터를 수집해 주세요.`, 'warn');
+    return;
+  }
+  const mcAuto = estimateMcMAXC(mags, dM);
+  STATE.mc = mcAuto;
+  document.getElementById('kMcAuto').textContent = mcAuto.toFixed(2);
+  document.getElementById('cMc').value = mcAuto.toFixed(1);
+  document.getElementById('cMc').dispatchEvent(new Event('input'));
+  updateMcUI();
+  drawFMD(STATE.declustered, mcAuto, dM);
+  setStatus('statusMc',
+    `✓ MAXC 추정 Mc = ${mcAuto.toFixed(2)}. FMD 곡선을 보며 슬라이더로 조정해도 됩니다.`, 'ok');
+  document.getElementById('btnUseMc').disabled = false;
+  document.getElementById('navStep3').classList.add('done');
+});
+
+function updateMcUI() {
+  const corr = parseFloat(document.getElementById('cMcCorr').value);
+  const manualMc = parseFloat(document.getElementById('cMc').value);
+  const mc = Math.round((manualMc + corr) * 100) / 100;
+  STATE.mc = mc;
+  document.getElementById('kMcUsed').textContent = mc.toFixed(2);
+  const aboveMc = STATE.declustered.filter(e => e.mag >= mc - STATE.binWidth/2);
+  document.getElementById('kMcN').textContent = aboveMc.length.toLocaleString();
+  document.getElementById('kMcSource').textContent = '본진 only';
+  document.getElementById('kMcSourceSub').textContent = `전체 ${STATE.declustered.length}개 중`;
+  // redraw FMD with current mc
+  if (STATE.declustered.length > 0) drawFMD(STATE.declustered, mc, STATE.binWidth);
+}
+['cMc', 'cMcCorr', 'cBin'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (id === 'cBin') STATE.binWidth = parseFloat(document.getElementById(id).value);
+    if (STATE.mc !== null) updateMcUI();
+  });
+});
+
+document.getElementById('btnUseMc').addEventListener('click', () => {
+  // Mc 확정 단계에서 Mmax 슬라이더 기본값 세팅
+  const maxObs = STATE.declustered.length > 0
+    ? Math.max(...STATE.declustered.map(e=>e.mag)) : 10;
+  const cMmax = document.getElementById('cMmax');
+  cMmax.max = Math.max(maxObs + 0.5, 10);
+  cMmax.value = Math.round((maxObs + 0.5) * 10) / 10;
+  document.getElementById('vMmax').textContent = Number(cMmax.value).toFixed(1);
+  document.getElementById('btnRecalcB').disabled = false;
+
+  computeBValue();
+  document.getElementById('step4').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+// M_max 컨트롤 배선
+document.getElementById('mMaxOn').addEventListener('change', (e) => {
+  document.getElementById('cMmax').disabled = !e.target.checked;
+});
+document.getElementById('cMmax').addEventListener('input', (e) => {
+  document.getElementById('vMmax').textContent = Number(e.target.value).toFixed(1);
+});
+document.getElementById('btnRecalcB').addEventListener('click', () => {
+  computeBValue();
+});
+
+/* ============================================================
+   8. b-value — MLE (Aki) and LSQ, with optional M_max cap
+   ============================================================ */
+function bValueMLE(mags, mc, dM, mMax) {
+  let sub = mags.filter(m => m >= mc - dM/2);
+  if (mMax !== undefined && mMax !== null) sub = sub.filter(m => m <= mMax + dM/2);
+  const n = sub.length;
+  if (n < 30) return null;
+  const meanM = sub.reduce((a,b)=>a+b, 0) / n;
+  const denom = meanM - (mc - dM/2);
+  if (denom <= 0) return null;
+  const b = Math.log10(Math.E) / denom;
+  // MLE-consistent a-value: anchor GR line at Mc
+  //   log10 N(>=Mc) = a - b*Mc  =>  a = log10(n) + b*Mc
+  const a = Math.log10(n) + b * mc;
+  // Shi & Bolt (1982) standard error
+  const variance = sub.reduce((s,m)=>s + (m - meanM)**2, 0) / (n * (n - 1));
+  const sigma = 2.30 * b * b * Math.sqrt(variance);
+  return { b, a, sigma, n, meanM, mc, dM, mMax: mMax ?? null };
+}
+
+function bValueLSQ(events, mc, dM, mMax) {
+  const mags = events.map(e=>e.mag);
+  const fmd = magnitudeBins(mags, dM);
+  const xs = [], ys = [];
+  for (let i = 0; i < fmd.centers.length; i++) {
+    if (fmd.centers[i] >= mc - dM/2 && fmd.cum[i] > 0 &&
+        (mMax === undefined || mMax === null || fmd.centers[i] <= mMax + dM/2)) {
+      xs.push(fmd.centers[i]);
+      ys.push(Math.log10(fmd.cum[i]));
+    }
+  }
+  if (xs.length < 3) return null;
+  const n = xs.length;
+  const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  for (let i=0;i<n;i++){ num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)**2; }
+  const slope = num/den;
+  const intercept = my - slope*mx;
+  return { b: -slope, a: intercept, n };
+}
+
+function computeBValue() {
+  if (STATE.mc === null) {
+    setStatus('statusB', 'Mc가 설정되지 않았습니다.', 'warn');
+    return;
+  }
+  const events = STATE.declustered;
+  const mags = events.map(e => e.mag);
+  const mc = STATE.mc;
+  const dM = STATE.binWidth;
+
+  // M_max optional cap
+  const mMaxOn = document.getElementById('mMaxOn').checked;
+  const mMax = mMaxOn ? parseFloat(document.getElementById('cMmax').value) : null;
+  STATE.mMax = mMax;
+
+  const subForFMD = events.filter(e => e.mag >= mc - dM/2 &&
+                                       (mMax === null || e.mag <= mMax + dM/2));
+
+  const mle = bValueMLE(mags, mc, dM, mMax);
+  const lsq = bValueLSQ(subForFMD, mc, dM, mMax);
+  if (!mle) {
+    setStatus('statusB', `조건에 맞는 이벤트가 부족합니다 (${subForFMD.length}개). Mc나 Mmax를 조정해 보세요.`, 'warn');
+    return;
+  }
+  STATE.bResult = {...mle, blsq: lsq ? lsq.b : null, alsq: lsq ? lsq.a : null};
+
+  document.getElementById('kB').textContent = mle.b.toFixed(3);
+  document.getElementById('kBerr').textContent =
+    `± ${mle.sigma.toFixed(3)}` + (mMax !== null ? ` · Mc≤M≤${mMax.toFixed(1)}` : '');
+  document.getElementById('kBlsq').textContent = lsq ? lsq.b.toFixed(3) : '—';
+  document.getElementById('kA').textContent = mle.a.toFixed(2);
+  document.getElementById('kBn').textContent = mle.n.toLocaleString();
+
+  drawGRfit(events, mc, dM, mle, lsq, mMax);
+  drawResiduals(subForFMD, mc, dM, mle, lsq, mMax);
+
+  // interpretation
+  let interp = '';
+  if (mle.b < 0.7) interp = `b ≈ ${mle.b.toFixed(2)}로 일반적인 값(≈1)보다 작습니다. 큰 지진의 비율이 상대적으로 높음 — 응력 집중 또는 카탈로그 문제(Mc 과소 추정)를 의심해야 합니다.`;
+  else if (mle.b > 1.3) interp = `b ≈ ${mle.b.toFixed(2)}로 일반적인 값보다 큽니다. 작은 지진의 비율이 매우 높음 — 화산성·열수성 환경, 혹은 군발지진(swarm) 가능성.`;
+  else if (mle.b >= 0.85 && mle.b <= 1.15) interp = `b ≈ ${mle.b.toFixed(2)}는 전형적인 구조성 지진대 값(≈1)의 범위 안입니다.`;
+  else interp = `b ≈ ${mle.b.toFixed(2)}는 일반적인 값과 약간의 차이를 보입니다. Mc, 여진제거 강도를 바꿔가며 안정성을 확인해 보세요.`;
+  if (mMax !== null) {
+    interp += ` (Mmax=${mMax.toFixed(1)} 상한 적용됨)`;
+  }
+  document.getElementById('interpBtext').textContent = interp;
+  document.getElementById('interpB').classList.remove('hide');
+
+  setStatus('statusB',
+    `✓ MLE: b = ${mle.b.toFixed(3)} ± ${mle.sigma.toFixed(3)} (n=${mle.n}${mMax!==null?`, Mc≤M≤${mMax.toFixed(1)}`:''}). LSQ: b = ${lsq?lsq.b.toFixed(3):'—'}.`, 'ok');
+  document.getElementById('btnTime').disabled = false;
+  document.getElementById('navStep4').classList.add('done');
+  setStatus('statusTime', '준비 완료. 시간 변화 분석을 실행하세요.');
+}
+
+function drawGRfit(events, mc, dM, mle, lsq, mMax) {
+  const mags = events.map(e=>e.mag);
+  const fmd = magnitudeBins(mags, dM);
+  const cum = fmd.cum.map(c => c > 0 ? c : null);
+  const counts = fmd.counts.map(c => c > 0 ? c : null);
+
+  // MLE line: uses MLE's own a-value (anchored at Mc)
+  // LSQ line: uses LSQ's own a-value (regression intercept)
+  const upperX = mMax != null ? mMax : fmd.maxM + 0.2;
+  const xLine = [];
+  for (let m = mc - dM/2; m <= upperX; m += 0.05) xLine.push(m);
+  const yLineMLE = xLine.map(m => Math.pow(10, mle.a - mle.b * m));
+  const yLineLSQ = lsq ? xLine.map(m => Math.pow(10, lsq.a - lsq.b * m)) : null;
+
+  const traces = [
+    { x: fmd.centers, y: cum, mode:'markers', name:'관측 누적 N',
+      marker:{color:'#2d5f7c', size:6}},
+    { x: fmd.centers, y: counts, mode:'markers', name:'관측 비누적 n',
+      marker:{color:'#b8401f', size:7, symbol:'square-open', line:{width:1.2}}},
+    { x: xLine, y: yLineMLE, mode:'lines', name:`MLE fit (b=${mle.b.toFixed(2)})`,
+      line:{color:'#1a1f2e', width:2.2}}
+  ];
+  if (yLineLSQ) traces.push({
+    x: xLine, y: yLineLSQ, mode:'lines', name:`LSQ fit (b=${lsq.b.toFixed(2)})`,
+    line:{color:'#c08a1f', width:1.6, dash:'dash'}
+  });
+
+  const shapes = [{type:'line', x0:mc, x1:mc, yref:'paper', y0:0, y1:1,
+                   line:{color:'#c08a1f', width:1.5, dash:'dot'}}];
+  const annots = [{x:mc, yref:'paper', y:1.04, text:`Mc=${mc.toFixed(2)}`,
+                   showarrow:false, font:{family:'JetBrains Mono', size:11, color:'#c08a1f'}}];
+  if (mMax != null) {
+    shapes.push({type:'line', x0:mMax, x1:mMax, yref:'paper', y0:0, y1:1,
+                 line:{color:'#b8401f', width:1.5, dash:'dot'}});
+    annots.push({x:mMax, yref:'paper', y:1.04, text:`Mmax=${mMax.toFixed(1)}`,
+                 showarrow:false, font:{family:'JetBrains Mono', size:11, color:'#b8401f'}});
+  }
+
+  Plotly.newPlot('plotGR', traces, {
+    title: { text:'GR fit on FMD', font:{family:'Pretendard',size:14}},
+    xaxis: { title:'규모 M', gridcolor:'#e0d8c1' },
+    yaxis: { title:'이벤트 수', type:'log', gridcolor:'#e0d8c1' },
+    paper_bgcolor:'#f7f1e1', plot_bgcolor:'#fbf7ed',
+    font:{family:'Pretendard',color:'#1a1f2e',size:11},
+    margin:{t:36,r:14,b:42,l:60},
+    shapes, annotations: annots,
+    legend:{orientation:'h', y:1.18}
+  }, {responsive:true, displaylogo:false});
+}
+
+function drawResiduals(events, mc, dM, mle, lsq, mMax) {
+  if (!lsq) { document.getElementById('plotResid').innerHTML = ''; return; }
+  const mags = events.map(e=>e.mag);
+  const fmd = magnitudeBins(mags, dM);
+  const xs = [], rsLSQ = [];
+  for (let i=0;i<fmd.centers.length;i++) {
+    if (fmd.centers[i] >= mc - dM/2 && fmd.cum[i] > 0 &&
+        (mMax == null || fmd.centers[i] <= mMax + dM/2)) {
+      xs.push(fmd.centers[i]);
+      rsLSQ.push(Math.log10(fmd.cum[i]) - (lsq.a - lsq.b * fmd.centers[i]));
+    }
+  }
+  Plotly.newPlot('plotResid', [{
+    x: xs, y: rsLSQ, mode:'markers+lines', name:'잔차 (LSQ)',
+    marker:{color:'#b8401f', size:7}, line:{color:'#b8401f', width:1}
+  }], {
+    title:{text:'적합 잔차 (log₁₀ 단위)', font:{family:'Pretendard',size:14}},
+    xaxis:{title:'규모 M', gridcolor:'#e0d8c1'},
+    yaxis:{title:'잔차 [log₁₀]', gridcolor:'#e0d8c1', zerolinecolor:'#1a1f2e', zerolinewidth:1.5},
+    paper_bgcolor:'#f7f1e1', plot_bgcolor:'#fbf7ed',
+    font:{family:'Pretendard',color:'#1a1f2e',size:11},
+    margin:{t:36,r:14,b:42,l:50},
+    showlegend:false
+  }, {responsive:true, displaylogo:false});
+}
+
+/* ============================================================
+   9. Temporal b-value (sliding window)
+   ============================================================ */
+document.getElementById('btnTime').addEventListener('click', () => {
+  if (!STATE.bResult) {
+    setStatus('statusTime', '먼저 4단계를 완료하세요.', 'warn');
+    return;
+  }
+  const win = parseInt(document.getElementById('cWin').value);
+  const step = parseInt(document.getElementById('cStep').value);
+  const mc = STATE.mc, dM = STATE.binWidth;
+  const mMax = STATE.mMax;  // 4단계에서 설정된 Mmax
+
+  const sub = STATE.declustered
+    .filter(e => e.mag >= mc - dM/2 && (mMax == null || e.mag <= mMax + dM/2))
+    .sort((a,b) => a.time - b.time);
+
+  if (sub.length < win + 10) {
+    setStatus('statusTime',
+      `Mc 이상 이벤트(${sub.length})가 윈도우 크기(${win})에 비해 부족합니다.`, 'warn');
+    return;
+  }
+
+  const ts = [], bs = [], errs = [], ns = [];
+  for (let i = 0; i + win <= sub.length; i += step) {
+    const slice = sub.slice(i, i + win);
+    const mags = slice.map(e => e.mag);
+    const r = bValueMLE(mags, mc, dM, mMax);
+    if (r) {
+      const tCenter = (slice[0].time + slice[slice.length-1].time) / 2;
+      ts.push(new Date(tCenter));
+      bs.push(r.b);
+      errs.push(r.sigma);
+      ns.push(slice.length);
+    }
+  }
+  STATE.btime = { ts, bs, errs, ns };
+  document.getElementById('btnExportB').disabled = false;
+
+  // mainshock vertical lines (M >= max - 0.5)
+  const maxM = Math.max(...STATE.declustered.map(e=>e.mag));
+  const bigOnes = STATE.declustered.filter(e => e.mag >= Math.max(5.0, maxM - 0.5));
+
+  const shapes = bigOnes.map(e => ({
+    type:'line', x0:new Date(e.time), x1:new Date(e.time),
+    yref:'paper', y0:0, y1:1,
+    line:{color:'#1a1f2e', width:1.2, dash:'dot'}
+  }));
+  const annots = bigOnes.map(e => ({
+    x:new Date(e.time), yref:'paper', y:1.02,
+    text:`M${e.mag.toFixed(1)}`, showarrow:false,
+    font:{family:'JetBrains Mono', size:10, color:'#1a1f2e'}
+  }));
+
+  Plotly.newPlot('plotBtime', [
+    {
+      x: ts, y: bs,
+      error_y: {type:'data', array: errs, color:'#b8401f', thickness:1, width:0},
+      mode:'lines+markers', name:'b(t)',
+      line:{color:'#b8401f', width:2}, marker:{size:5, color:'#b8401f'}
+    },
+    {
+      x: ts, y: bs.map(()=>STATE.bResult.b),
+      mode:'lines', name:`전체 b = ${STATE.bResult.b.toFixed(3)}`,
+      line:{color:'#1a1f2e', width:1, dash:'dash'}
+    }
+  ], {
+    title:{text:`b-값 시간 변화 · 윈도우 ${win} events, step ${step}`, font:{family:'Pretendard',size:14}},
+    xaxis:{title:'시간', gridcolor:'#e0d8c1'},
+    yaxis:{title:'b-value', gridcolor:'#e0d8c1'},
+    paper_bgcolor:'#f7f1e1', plot_bgcolor:'#fbf7ed',
+    font:{family:'Pretendard',color:'#1a1f2e',size:11},
+    margin:{t:50,r:14,b:42,l:50},
+    shapes, annotations: annots,
+    legend:{orientation:'h', y:1.12}
+  }, {responsive:true, displaylogo:false});
+
+  setStatus('statusTime',
+    `✓ 윈도우 ${ts.length}개 계산 완료. 본진 시점은 점선으로 표시됩니다.`, 'ok');
+  document.getElementById('navStep5').classList.add('done');
+});
+
+/* ============================================================
+   10. CSV exports
+   ============================================================ */
+function downloadCSV(filename, headers, rows) {
+  const csv = [headers.join(',')]
+    .concat(rows.map(r => r.map(v =>
+      typeof v === 'string' && v.includes(',') ? `"${v}"` : v).join(',')))
+    .join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+document.getElementById('btnExportRaw').addEventListener('click', () => {
+  if (STATE.filtered.length === 0) return;
+  downloadCSV(
+    'catalog.csv',
+    ['id','time_iso','lat','lon','depth_km','mag','isMain','cluster'],
+    STATE.filtered.map(e => [
+      e.id, new Date(e.time).toISOString(),
+      e.lat.toFixed(4), e.lon.toFixed(4), e.depth.toFixed(1),
+      e.mag.toFixed(2),
+      e.isMain === undefined ? '' : (e.isMain ? 1 : 0),
+      e.cluster === undefined ? '' : e.cluster
+    ])
+  );
+});
+
+document.getElementById('btnExportB').addEventListener('click', () => {
+  if (!STATE.btime) return;
+  downloadCSV(
+    'b_value_time.csv',
+    ['time_iso','b_value','sigma','n_events'],
+    STATE.btime.ts.map((t,i) => [
+      t.toISOString(),
+      STATE.btime.bs[i].toFixed(4),
+      STATE.btime.errs[i].toFixed(4),
+      STATE.btime.ns[i]
+    ])
+  );
+});
+
+/* ============================================================
+   11. On-load: initialize map placeholder
+   ============================================================ */
+window.addEventListener('load', () => {
+  initMap();
+});
+</script>
+
+</body>
+</html>
